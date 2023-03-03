@@ -161,6 +161,7 @@ class EnsembleEvaluator(ABC):
         self,
         model: Union[Model, List],
         mapped_triples: MappedTriples,
+        weights: Optional[List] = None,
         batch_size: Optional[int] = None,
         slice_size: Optional[int] = None,
         **kwargs,
@@ -214,6 +215,7 @@ class EnsembleEvaluator(ABC):
 
         rv = evaluate(
             model=model,
+            weights=weights,
             mapped_triples=mapped_triples,
             evaluator=self,
             batch_size=batch_size,
@@ -526,6 +528,7 @@ def evaluate(
     model: Union[Model, List],
     mapped_triples: MappedTriples,
     evaluator: EnsembleEvaluator,
+    weights: Optional[List] = None,
     only_size_probing: bool = False,
     batch_size: Optional[int] = None,
     slice_size: Optional[int] = None,
@@ -702,6 +705,7 @@ def evaluate(
                 relation_filter = _evaluate_batch(
                     batch=batch,
                     model=model,
+                    weights=weights,
                     target=target,
                     evaluator=evaluator,
                     slice_size=slice_size,
@@ -743,6 +747,7 @@ def _evaluate_batch(
     restrict_entities_to: Optional[torch.LongTensor],
     *,
     mode: Optional[InductiveMode],
+    weights: Optional[List] = None
 ) -> torch.BoolTensor:
     """
     Evaluate ranking for batch.
@@ -773,16 +778,19 @@ def _evaluate_batch(
         The relation filter, which can be re-used for the same batch.
     """
     if isinstance(model, List):
+        if weights is None:
+            weights = [1/len(model)] * len(model)
+        print(f'weights are {weights}')
         scores_list = []
-        for m in model:
-            scores_list.append(m.predict(hrt_batch=batch, target=target, slice_size=slice_size, mode=mode))
+        for i, m in enumerate(model):
+            scores_list.append(m.predict(hrt_batch=batch, target=target, slice_size=slice_size, mode=mode) * weights[i])
 
         scores = reduce(
             torch.Tensor.add_,
             scores_list,
             torch.zeros_like(scores_list[0])
         )
-        scores = scores/len(scores_list)
+        scores = scores/sum(weights) #len(scores_list)
     else:
         scores = model.predict(hrt_batch=batch, target=target, slice_size=slice_size, mode=mode)
 
