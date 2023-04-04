@@ -162,6 +162,8 @@ class EnsembleEvaluator(ABC):
         model: Union[Model, List],
         mapped_triples: MappedTriples,
         weights: Optional[List] = None,
+        borda: Optional[bool] = False,
+        normalize: Optional[str] = None,
         batch_size: Optional[int] = None,
         slice_size: Optional[int] = None,
         **kwargs,
@@ -216,6 +218,8 @@ class EnsembleEvaluator(ABC):
         rv = evaluate(
             model=model,
             weights=weights,
+            borda=borda,
+            normalize=normalize,
             mapped_triples=mapped_triples,
             evaluator=self,
             batch_size=batch_size,
@@ -529,6 +533,8 @@ def evaluate(
     mapped_triples: MappedTriples,
     evaluator: EnsembleEvaluator,
     weights: Optional[List] = None,
+    borda: Optional[bool] = False,
+    normalize: Optional[str] = None,
     only_size_probing: bool = False,
     batch_size: Optional[int] = None,
     slice_size: Optional[int] = None,
@@ -706,6 +712,8 @@ def evaluate(
                     batch=batch,
                     model=model,
                     weights=weights,
+                    borda=borda,
+                    normalize=normalize,
                     target=target,
                     evaluator=evaluator,
                     slice_size=slice_size,
@@ -736,6 +744,29 @@ def evaluate(
     return result
 
 
+def get_ranks(scores):
+    args = torch.argsort(scores)
+    ordered = np.tile(np.arange(scores.size(1)), (scores.size(0),1))
+    ranks = np.array(list(map(lambda x, y: y[x], np.argsort(args), ordered)))
+    return torch.from_numpy(ranks)
+
+
+def min_max_norm(a):
+    min_val = torch.min(a)
+    max_val = torch.max(a)
+    
+    normalized_a = (a - min_val) / (max_val - min_val)
+    return normalized_a
+
+
+def standard_norm(a):
+    mean = torch.mean(a)
+    std = torch.std(a)
+    
+    normalized_a = (a - mean) / std
+    return normalized_a
+
+
 def _evaluate_batch(
     batch: MappedTriples,
     model: Union[Model, List],
@@ -747,7 +778,9 @@ def _evaluate_batch(
     restrict_entities_to: Optional[torch.LongTensor],
     *,
     mode: Optional[InductiveMode],
-    weights: Optional[List] = None
+    weights: Optional[List] = None,
+    borda: Optional[bool] = False,
+    normalize: Optional[str] = None
 ) -> torch.BoolTensor:
     """
     Evaluate ranking for batch.
@@ -781,9 +814,14 @@ def _evaluate_batch(
         if weights is None:
             weights = [1/len(model)] * len(model)
         print(f'weights are {weights}')
+        if borda:
+            print('Doing borda rank')
         scores_list = []
         for i, m in enumerate(model):
-            scores_list.append(m.predict(hrt_batch=batch, target=target, slice_size=slice_size, mode=mode) * weights[i])
+            scores_i = m.predict(hrt_batch=batch, target=target, slice_size=slice_size, mode=mode)
+            scores_i = min_max_norm(scores_i) if normalize == 'MinMax' else standard_norm(scores_i) if normalize == 'Standard' else scores_i
+            scores_i = get_ranks(scores_i) if borda else scores_i
+            scores_list.append(scores_i * weights[i])
 
         scores = reduce(
             torch.Tensor.add_,
