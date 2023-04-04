@@ -112,6 +112,7 @@ if tail corruption is used with probability $1 - p_r$.
 from class_resolver import ClassResolver
 
 from .basic_negative_sampler import BasicNegativeSampler
+from .extended_basic_negative_sampler import ExtendedBasicNegativeSampler
 from .bernoulli_negative_sampler import BernoulliNegativeSampler
 from .negative_sampler import NegativeSampler
 from .pseudo_type import PseudoTypedNegativeSampler
@@ -120,6 +121,7 @@ __all__ = [
     "NegativeSampler",
     "BasicNegativeSampler",
     "BernoulliNegativeSampler",
+    "ExtendedBasicNegativeSampler",
     "PseudoTypedNegativeSampler",
     # Utils
     "negative_sampler_resolver",
