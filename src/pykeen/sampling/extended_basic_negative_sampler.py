@@ -20,25 +20,22 @@ __all__ = [
 
 def adversarial_replacement_(model, batch: torch.LongTensor, index: int, selection: slice, k: int = 1) -> None:
 
-    slice_batch = batch[selection, :]
-    # get rt_batch for head scores and hr_batch for tail scores
-    # TODO: expand to cover corrupting relations as well
-    triples_to_scores = slice_batch[:,1:] if index==0 else slice_batch[:,:2]
-    # get true heads or tails
-    true_side = slice_batch[:,index]
-    true_side = true_side.view(-1,1)
-    # get scores of all possible heads for each triple
-    scores_side = model.predict_h(triples_to_scores) if index==0 else model.predict_t(triples_to_scores)
-    # create a tensor of indcies
-    just_indices = torch.arange(0, true_side.size(0)).view(-1,1)
-    # find the minimum score 
-    min_score = scores_side.min()
-    # replace scores of true heads with the minimal value to avoid getting them in top k
-    scores_side[just_indices, true_side] = min_score - 1
-    # find indices of top k heads per triple
-    _, replacement = torch.topk(scores_side, k, dim=1)
-    # create the negative triples 
-    batch[selection, index] = torch.squeeze(replacement)
+    with torch.no_grad():
+        # get rt_batch for head scores and hr_batch for tail scores
+        # TODO: expand to cover corrupting relations as well
+        triples_to_scores = batch[selection, 1:] if index==0 else batch[selection, :2]
+        # get true heads or tails
+        true_side = batch[selection, index].view(-1,1)
+        # get scores of all possible heads for each triple
+        scores_side = model.predict_h(triples_to_scores) if index==0 else model.predict_t(triples_to_scores)
+        # create a tensor of indcies
+        just_indices = torch.arange(0, true_side.size(0)).view(-1,1)
+        # replace scores of true heads with the minimal value to avoid getting them in top k
+        scores_side[just_indices, true_side] = scores_side.min() - 1
+        # find indices of top k heads per triple
+        _, replacement = torch.topk(scores_side, k, dim=1)
+        # create the negative triples 
+        batch[selection, index] = torch.squeeze(replacement)
 
 
 def random_replacement_(batch: torch.LongTensor, index: int, selection: slice, size: int, max_index: int) -> None:
@@ -65,6 +62,7 @@ def random_replacement_(batch: torch.LongTensor, index: int, selection: slice, s
         size=(size,),
         device=batch.device,
     )
+   
     replacement += (replacement >= batch[selection, index]).long()
     batch[selection, index] = replacement
 
@@ -128,6 +126,7 @@ class ExtendedBasicNegativeSampler(NegativeSampler):
         self.num_epoch_model_loaded = 0
         self.start_adversarial_replacement = False
 
+
     # docstr-coverage: inherited
     def corrupt_batch(self, positive_batch: torch.LongTensor) -> torch.LongTensor:  # noqa: D102
         batch_shape = positive_batch.shape[:-1]
@@ -152,7 +151,7 @@ class ExtendedBasicNegativeSampler(NegativeSampler):
         # linear equation to determine proportion of random triples starting from and linearly decreasing to 0
         random_portion = self.c/(self.num_batches * (self.num_epochs_passed + self.step - self.num_epochs)) - self.num_epochs/(self.num_epochs_passed + self.step - self.num_epochs)
         random_portion = min(1, random_portion) # if self.start_adversarial_replacement else 1
-
+        
         for index, start in zip(self._corruption_indices, range(0, total_num_negatives, split_idx)):
             stop = min(start + split_idx, total_num_negatives)
             stop_random = math.ceil((stop - start) * random_portion) + start
@@ -164,13 +163,6 @@ class ExtendedBasicNegativeSampler(NegativeSampler):
                 max_index=self.num_relations if index == 1 else self.num_entities,
             )
             if random_portion < 1 and stop_random < stop:
-                print('start', start, 'stop', stop, 'stop_random', stop_random, 'index', index)
-                # print(self.num_batches, self.models_to_load, self.num_epochs, self.step, 
-                # self.num_epochs_passed, self.dataset_name, self.model_name, self.method, 
-                # self.num_epoch_model_loaded, self.start_adversarial_replacement)
-                # print('epoch', self.epoch, 'batch', self.c)
-                # print('random portion', random_portion)
-                # print('slice', stop_random, stop)
                 adversarial_replacement_(
                     batch=negative_batch, 
                     index=index, 
