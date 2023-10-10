@@ -32,8 +32,7 @@
 </p>
 
 <p align="center">
-    <b>SnapE-PyKEEN</b> (<b>S</b>napshot <b>E</b>nsembles - <b>P</b>ython <b>K</b>nowl<b>E</b>dge <b>E</b>mbeddi<b>N</b>gs) is a Python package adapted from [PyKEEN](https://github.com/pykeen/pykeen) to
-    allow training and evaluating snapshot ensembles of knowledge graph embedding models. Additionally, it also includes an extended negative sampler that iteratively creates negative examples using previous snapshot models. All functionalities and components provided in PyKEEN are also available in SnapE-PyKEEN.
+    <b>SnapE-PyKEEN</b> (<b>S</b>napshot <b>E</b>nsembles - <b>P</b>ython <b>K</b>nowl<b>E</b>dge <b>E</b>mbeddi<b>N</b>gs) is a Python package adapted from PyKEEN to allow training and evaluating snapshot ensembles of knowledge graph embedding models. Additionally, it also includes an extended negative sampler that iteratively creates negative examples using previous snapshot models. All functionalities and components provided in PyKEEN are also available in SnapE-PyKEEN.
 </p>
 
 <p align="center">
@@ -50,7 +49,7 @@
 
 SnapE - is an approach to transfer the idea of snapshot ensembles to link prediction models in knowledge graphs. Additionally, SnapE provides a training loop that iteratively creates negative examples using previous snapshot models. 
 
-Snapshot Ensembling is a method proposed in 2017 by Huang et al to boost the performance of deep learning models without an increase in computational costs. It builds on the idea of training a model with cyclic learning rate annealing and storing snapshots of the model at the end of each cycle. The model converges to a local minimum at the end of each cycle then, by restarting the learning rate, the model escapes the local minimum and converges to another one. The resulting snapshots constitute a set of diverse base models. The stored snapshots can be ensembled which allows for training an ensemble of prediction models at the cost of training a single one. More information on Snapshot Ensembles can be found in [this article](https://arxiv.org/abs/1704.00109)
+Snapshot Ensembling is a method proposed in 2017 by Huang et al to boost the performance of deep learning models without an increase in computational costs. It builds on the idea of training a model with cyclic learning rate annealing and storing snapshots of the model at the end of each cycle. The model converges to a local minimum at the end of each cycle then, by restarting the learning rate, the model escapes the local minimum and converges to another one. The resulting snapshots constitute a set of diverse base models. The stored snapshots can be ensembled which allows for training an ensemble of prediction models at the cost of training a single one. More information on Snapshot Ensembles can be found in [this paper](https://arxiv.org/abs/1704.00109)
 
 <p align="center">
   <img src="docs/source/snapshots_minima.png" height="350" alt="Illustration of Snapshot Ensembles. Source: https://arxiv.org/abs/1704.00109">
@@ -66,7 +65,7 @@ source code on [GitHub](https://github.com/Alishaba/pykeen-snapshot-ensembles) w
 ```shell
 pip install git+https://github.com/Alishaba/pykeen-snapshot-ensembles.git
 ```
-More information about PyKEEN (e.g., installation, first steps, Knowledge Graph Embedding Models, extras) can be found in the [documentation](https://pykeen.readthedocs.io/en/latest/index.html).
+More information about [PyKEEN](https://github.com/pykeen/pykeen) (e.g., installation, first steps, Knowledge Graph Embedding Models, extras) can be found in the [documentation](https://pykeen.readthedocs.io/en/latest/index.html).
 
 SnapE-PyKEEN extends PyKEEN to allow for training Snapshot Ensembles of Knowledge Graph Embedding models by providing the following classes:
 1. ModelSavingCallback: This class extends PyKEEN's  TrainingCallback class to perform cyclic learning rate annealing and store model snapshots at the end of each cycle. The current implementation stores the models in a folder "models" in the root directory. Snapshot names will have the format './models/trained_model_{dataset_name}\_{model_name}\_{method}_{epoch}.pkl' where method is a keyword needed to separate between different experiemnts and epoch is the number of epoch at which the snapshot was stored.
