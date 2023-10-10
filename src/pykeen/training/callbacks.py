@@ -57,6 +57,8 @@ from typing import Any, List, Optional
 from class_resolver import ClassResolver, HintOrType, OptionalKwargs
 from torch import optim
 from torch.nn.utils import clip_grad_norm_, clip_grad_value_
+import math
+import torch
 
 from ..evaluation import Evaluator, evaluator_resolver
 from ..evaluation.evaluation_loop import AdditionalFilterTriplesHint, LCWAEvaluationLoop
@@ -133,6 +135,52 @@ class TrainingCallback:
 
     def post_train(self, losses: List[float], **kwargs: Any) -> None:
         """Call after training."""
+
+
+class ModelSavingCallback(TrainingCallback):
+    def __init__(self, batch_size: int, dataset_size: int, step: int, 
+    max_lr: float, min_lr: float, num_snapshots: int, num_epochs: int, 
+    method: str, dataset_name: str, model_name: str):
+        """
+        """
+        super().__init__()
+        self.batch_size = batch_size
+        self.dataset_size = dataset_size
+        self.step = self._is_divisible_step(num_epochs, step)
+        self.max_lr = max_lr
+        self.min_lr = min_lr
+        self.num_snapshots = num_snapshots
+        self.method = method
+        self.dataset_name = dataset_name
+        self.model_name = model_name
+        self.num_epochs_passed = num_epochs - num_snapshots * step
+        self.T = step * round(dataset_size/batch_size + 0.5)
+        self.c = 0
+    def _is_divisible_step(self, num_epochs, step):
+        if not num_epochs % step == 0:
+            raise ValueError("Number of epochs should be divisible \
+            by number of steps")
+        return step
+    def calc_lr(self):
+        # rplace this with the formula of you scheduler
+        lr = (self.max_lr/2)*(math.cos((math.pi*((self.c)%math.ceil(self.T)))/ \
+        math.ceil(self.T)) + 1) 
+        return lr
+    def on_batch(self, epoch: int, batch, 
+                 batch_loss: float, **kwargs: Any) -> None:
+        if epoch > self.num_epochs_passed:
+            self.optimizer.param_groups[0]['lr'] = self.calc_lr()
+    def post_batch(self, epoch: int, batch, **kwargs: Any) -> None:
+        self.c += 1
+    def post_epoch(self, epoch: int, epoch_loss: float,
+                   **kwargs: Any) -> None:      
+        print(epoch, epoch_loss, self.optimizer.param_groups[0]['lr'])
+        if epoch == self.num_epochs_passed:
+            self.c = 0
+        if epoch % self.step == 0 and epoch > self.num_epochs_passed:
+            self.c = 0
+            torch.save(self.model, f'./models/trained_model_{self.dataset_name}_\
+            {self.model_name}_{self.method}_{epoch}.pkl')
 
 
 class TrackerTrainingCallback(TrainingCallback):
