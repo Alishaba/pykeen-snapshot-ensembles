@@ -33,17 +33,15 @@
 
 <p align="center">
     <b>SnapE-PyKEEN</b> (<b>S</b>napshot <b>E</b>nsembles <b>P</b>ython <b>K</b>nowl<b>E</b>dge <b>E</b>mbeddi<b>N</b>gs) is a Python package adapted from [PyKEEN](https://github.com/pykeen/pykeen) to
-    allow evaluating ensembles of knowledge graph embedding models. Additionally, in the case of snapshot ensembles, it also includes an extended negative sampler that iteratively creates negative examples using previous snapshot models. All functionalities and components provided in PyKEEN are also available in SnapE-PyKEEN.
+    allow training and evaluating snapshot ensembles of knowledge graph embedding models. Additionally, it also includes an extended negative sampler that iteratively creates negative examples using previous snapshot models. All functionalities and components provided in PyKEEN are also available in SnapE-PyKEEN.
 </p>
 
 <p align="center">
   <a href="#installation">Installation</a> •
-  <a href="#quickstart">Quickstart</a> •
-  <a href="#datasets">Datasets (36)</a> •
-  <a href="#inductive-datasets">Inductive Datasets (5)</a> •
-  <a href="#models">Models (44)</a> •
-  <a href="#supporters">Support</a> •
-  <a href="#citation">Citation</a>
+  <a href="#Evaluation with Knowledge Graph Embedding Model">Evaluation with Knowledge Graph Embedding Model</a> •
+  <a href="#Evaluation with an ensemble of Knowledge Graph Embedding Models">Evaluation with an ensemble of Knowledge Graph Embedding Models</a> •
+  <a href="#Basic Negative Sampler">Basic Negative Sampler</a> •
+  <a href="#Extended Negative Sampler">Extended Negative Sampler</a> 
 </p>
 
 ## Installation
