@@ -101,7 +101,7 @@ pipeline_result = pipeline(
       callbacks=ModelSavingCallback,
       callback_kwargs=dict(
           batch_size=batch_size,
-          dataset_size=training.num_triples,
+          dataset_size=dataset.training.num_triples,
           max_lr=max_lr,
           min_lr=None,
           step=step,
@@ -126,6 +126,7 @@ from pykeen.sampling import ExtendedBasicNegativeSampler
 from pykeen.models import TransE
 from pykeen.pipeline import pipeline
 from pykeen.training import ModelSavingCallback
+import math
 
 # Get FB15k-237 dataset
 dataset = FB15k237()
@@ -137,8 +138,8 @@ model = TransE(
 
 # Define the Snapshot Ensemble configuration
 batch_size = 128
-num_batches = math.floor(dataset.training.num_triples/batch_size),
-models_to_load = 5,
+num_batches = math.floor(dataset.training.num_triples/batch_size)
+models_to_load = 5
 max_lr = 0.1
 num_epochs = 500
 step = 50
@@ -171,7 +172,7 @@ pipeline_result = pipeline(
       callbacks=ModelSavingCallback,
       callback_kwargs=dict(
           batch_size=batch_size,
-          dataset_size=training.num_triples,
+          dataset_size=dataset.training.num_triples,
           max_lr=max_lr,
           min_lr=None,
           step=step,
@@ -198,6 +199,8 @@ from pykeen.sampling import ExtendedBasicNegativeSampler
 from pykeen.evaluation import EnsembleRankBasedEvaluator
 from pykeen.models import TransE
 from pykeen.pipeline import pipeline
+from pykeen.training import ModelSavingCallback
+import math
 import torch
 
 # Get FB15k-237 dataset
@@ -210,8 +213,8 @@ model = TransE(
 
 # Define the Snapshot Ensemble configuration
 batch_size = 128
-num_batches = math.floor(dataset.training.num_triples/batch_size),
-models_to_load = 5,
+num_batches = math.floor(dataset.training.num_triples/batch_size)
+models_to_load = 5
 max_lr = 0.1
 num_epochs = 500
 step = 50
@@ -244,7 +247,7 @@ pipeline_result = pipeline(
       callbacks=ModelSavingCallback,
       callback_kwargs=dict(
           batch_size=batch_size,
-          dataset_size=training.num_triples,
+          dataset_size=dataset.training.num_triples,
           max_lr=max_lr,
           min_lr=None,
           step=step,
@@ -283,6 +286,8 @@ from pykeen.sampling import ExtendedBasicNegativeSampler
 from pykeen.evaluation import EnsembleRankBasedEvaluator
 from pykeen.models import TransE
 from pykeen.pipeline import pipeline
+from pykeen.training import ModelSavingCallback
+import math
 import torch
 
 # Get FB15k-237 dataset
@@ -295,8 +300,8 @@ model = TransE(
 
 # Define the Snapshot Ensemble configuration
 batch_size = 128
-num_batches = math.floor(dataset.training.num_triples/batch_size),
-models_to_load = 5,
+num_batches = math.floor(dataset.training.num_triples/batch_size)
+models_to_load = 5
 max_lr = 0.1
 num_epochs = 500
 step = 50
@@ -329,7 +334,7 @@ pipeline_result = pipeline(
       callbacks=ModelSavingCallback,
       callback_kwargs=dict(
           batch_size=batch_size,
-          dataset_size=training.num_triples,
+          dataset_size=dataset.training.num_triples,
           max_lr=max_lr,
           min_lr=None,
           step=step,
