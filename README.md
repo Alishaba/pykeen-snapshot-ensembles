@@ -32,17 +32,30 @@
 </p>
 
 <p align="center">
-    <b>SnapE-PyKEEN</b> (<b>S</b>napshot <b>E</b>nsembles <b>P</b>ython <b>K</b>nowl<b>E</b>dge <b>E</b>mbeddi<b>N</b>gs) is a Python package adapted from [PyKEEN](https://github.com/pykeen/pykeen) to
+    <b>SnapE-PyKEEN</b> (<b>S</b>napshot <b>E</b>nsembles - <b>P</b>ython <b>K</b>nowl<b>E</b>dge <b>E</b>mbeddi<b>N</b>gs) is a Python package adapted from [PyKEEN](https://github.com/pykeen/pykeen) to
     allow training and evaluating snapshot ensembles of knowledge graph embedding models. Additionally, it also includes an extended negative sampler that iteratively creates negative examples using previous snapshot models. All functionalities and components provided in PyKEEN are also available in SnapE-PyKEEN.
 </p>
 
 <p align="center">
+  <a href="#introduction">Introduction</a> •
   <a href="#installation">Installation</a> •
-  <a href="#Training a Snapshot Ensemble of KGEMs">Training a Snapshot Ensemble of KGEMs</a> •
-  <a href="#Extended Negative Sampler">Extended Negative Sampler</a> •
-  <a href="#Evaluating a (snapshot) ensemble of KGEMs">Evaluating a (snapshot) ensemble of KGEMs</a> 
+  <a href="#training-a-snapshot-ensemble-of-kgems">Training a Snapshot Ensemble of KGEMs</a> •
+  <a href="#extended-negative-sampler">Extended Negative Sampler</a> •
+  <a href="#evaluating-a-snapshot-ensemble-of-kgems">Evaluating a snapshot ensemble of KGEMs</a> •
+  <a href="#experimentation">Experimentation</a> 
 
 </p>
+
+## Introduction
+
+SnapE - is an approach to transfer the idea of snapshot ensembles to link prediction models in knowledge graphs. Moreover, we propose a training loop that iteratively creates negative examples using previous snapshot models. 
+
+Snapshot Ensembling is a method proposed in 2017 by Huang et al to boost the performance of deep learning models without an increase in computational costs. It builds on the idea of training a model with cyclic learning rate annealing and storing snapshots of the model at the end of each cycle. The model converges to a local minimum at the end of each cycle then, by restarting the learning rate, the model escapes the local minimum and converges to another one. The resulting snapshots constitute a set of diverse base models. The stored snapshots can be ensembled which allows for training an ensemble of prediction models at the cost of training a single one. More information on Snapshot Ensembles can be found in [this article](https://arxiv.org/abs/1704.00109)
+
+<p align="center">
+  <img src="docs/source/snapshots_minima.png" height="150" alt="Illustration of Snapshot Ensembles. Source: https://arxiv.org/abs/1704.00109">
+</p>
+
 
 ## Installation
 
@@ -363,7 +376,7 @@ normalize = 'MinMax'
 evaluator = EnsembleRankBasedEvaluator()
 
 # Evaluate your model with not only testing triples,
-# but also filter on training and validation triples
+# but also filter on training and validation triples 
 results = evaluator.evaluate(
     model=models,
     mapped_triples=dataset.testing.mapped_triples,
@@ -376,3 +389,17 @@ results = evaluator.evaluate(
     normalize=normalize
 )
 ```
+
+
+## Experimentation
+
+We used SnapE-PyKEEN to perform a benchmarking study: We run experiments with SnapE and four different base
+models and compared them to the results achieved with the respective baseline models. In our evaluation, we consider two different setups:
+(1) Equal training time budget. We train a model with 𝑑 dimensions and 𝑚 snapshots, and compare it to a single base model with 𝑑 dimensions.
+(2) Equal memory budget. We train a model with 𝑑/𝑚 dimensions and 𝑚 snapshots, and compare it to a single base model with 𝑑 dimensions.
+
+Additionally, we run an Ablation study to analyze the impact of (1) different optimizers, (2) different learning rate schedulers (CCA and MMCCLR), (3) different negative samplers, (4) different strategies for combining the predictions of the snapshots.
+
+All results are available in the two links below:
+[Snapshot Ensembles with MMCCLR](https://docs.google.com/spreadsheets/d/1OfpnbTxGLBjt0vi2xPCrTmphyUnQePn9NQYYZ_m29ws/edit?usp=sharing)
+[Snapshot Ensembles with CCA](https://docs.google.com/spreadsheets/d/1reAZlNv2ywucMc8frlGwghCsM69CtJ1T1pAbOVrcsko/edit?usp=sharing)
