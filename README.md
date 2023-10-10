@@ -38,9 +38,7 @@
 
 <p align="center">
   <a href="#installation">Installation</a> •
-  <a href="#Evaluation with Knowledge Graph Embedding Model">Evaluation with Knowledge Graph Embedding Model</a> •
-  <a href="#Evaluation with an ensemble of Knowledge Graph Embedding Models">Evaluation with an ensemble of Knowledge Graph Embedding Models</a> •
-  <a href="#Basic Negative Sampler">Basic Negative Sampler</a> •
+  <a href="#Evaluating an ensemble of KGEMs">Evaluating an ensemble of KGEMs</a> •
   <a href="#Extended Negative Sampler">Extended Negative Sampler</a> 
 </p>
 
@@ -55,15 +53,14 @@ pip install git+https://github.com/Alishaba/pykeen-snapshot-ensembles.git
 ```
 More information about PyKEEN (e.g., installation, first steps, Knowledge Graph Embedding Models, extras) can be found in the [documentation](https://pykeen.readthedocs.io/en/latest/index.html).
 
-## Evaluation with Knowledge Graph Embedding Model
 
-This example shows how to evaluate a model on a testing dataset.
+## Training a Snapshot Ensemble of KGEMs
 
 ```python
 from pykeen.datasets import FB15k237
-from pykeen.evaluation import RankBasedEvaluator
 from pykeen.models import TransE
 from pykeen.pipeline import pipeline
+from pykeen.training import ModelSavingCallback
 
 # Get FB15k-237 dataset
 dataset = FB15k237()
@@ -73,35 +70,109 @@ model = TransE(
     triples_factory=dataset.training,
 )
 
+batch_size = 128
+max_lr = 0.1
+num_epochs = 500
+step = 50
+num_snapshots=10
+dataset_name = 'FB15k237'
+model_name = 'TransE'
+method = 'paper'
+
+
 # Train your model (code is omitted for brevity)
 pipeline_result = pipeline(
     dataset=dataset,
     random_seed=10,
-    model=model
-        )
-
-# Define evaluator
-evaluator = RankBasedEvaluator(
-    filtered=True,  # Note: this is True by default; we're just being explicit
-)
-
-# Evaluate your model with not only testing triples,
-# but also filter on validation triples
-results = evaluator.evaluate(
-    model=pipeline_result.model,
-    mapped_triples=dataset.testing.mapped_triples,
-    additional_filter_triples=[
-        dataset.training.mapped_triples,
-        dataset.validation.mapped_triples,
-    ],
+    model=model,
+    training_kwargs=dict(
+      drop_last=True,
+      num_epochs=num_epochs,
+      callbacks=ModelSavingCallback,
+      callback_kwargs=dict(
+          batch_size=batch_size,
+          dataset_size=training.num_triples,
+          max_lr=max_lr,
+          min_lr=None,
+          step=step,
+          num_snapshots=num_snapshots,
+          num_epochs=num_epochs,
+          method=method,
+          dataset_name=dataset_name,
+          model_name=model_name
+      )
+    )
 )
 ```
 
-For more information on rank-based evaluation see the tutorials
-on [understanding the evaluation](https://pykeen.readthedocs.io/en/latest/tutorial/understanding_evaluation.html),
+
+## Extended Negative Sampler
+
+```python
+from pykeen.datasets import FB15k237
+from pykeen.sampling import ExtendedBasicNegativeSampler
+from pykeen.models import TransE
+from pykeen.pipeline import pipeline
+from pykeen.training import ModelSavingCallback
+
+# Get FB15k-237 dataset
+dataset = FB15k237()
+
+# Define model
+model = TransE(
+    triples_factory=dataset.training,
+)
+
+batch_size = 128
+num_batches = math.floor(dataset.training.num_triples/batch_size),
+models_to_load = 5,
+max_lr = 0.1
+num_epochs = 500
+step = 50
+num_snapshots=10
+dataset_name = 'FB15k237'
+model_name = 'TransE'
+method = 'paper'
+
+negative_sampler_kwargs = dict(
+  num_batches=num_batches,
+  models_to_load=models_to_load,
+  num_epochs=num_epochs,
+  step=step,
+  dataset_name=dataset_name,
+  model_name=model_name,
+  method=method,
+)
+
+# Train your model
+pipeline_result = pipeline(
+    dataset=dataset,
+    random_seed=10,
+    model=model,
+    negative_sampler=ExtendedBasicNegativeSampler,
+    negative_sampler_kwargs=negative_sampler_kwargs,
+    training_kwargs=dict(
+      drop_last=True,
+      num_epochs=num_epochs,
+      callbacks=ModelSavingCallback,
+      callback_kwargs=dict(
+          batch_size=batch_size,
+          dataset_size=training.num_triples,
+          max_lr=max_lr,
+          min_lr=None,
+          step=step,
+          num_snapshots=num_snapshots,
+          num_epochs=num_epochs,
+          method=method,
+          dataset_name=dataset_name,
+          model_name=model_name
+      )
+    )
+)
+```
 
 
-## Evaluation with an ensemble of Knowledge Graph Embedding Models
+## Evaluating a (snapshot) ensemble of KGEMs
 
 The example provided in the previous section shows how to evaluate a single trained Knowledge Graph Embedding Model.  SnapE-PyKEEN extends this capability to provide rank-based evaluation for ensembles of Knowledge Graph Embedding Models.
 
@@ -109,9 +180,11 @@ The example below shows how to use EnsembleRankBasedEvaluator to evaluate an ens
 
 ```python
 from pykeen.datasets import FB15k237
+from pykeen.sampling import ExtendedBasicNegativeSampler
 from pykeen.evaluation import EnsembleRankBasedEvaluator
 from pykeen.models import TransE
 from pykeen.pipeline import pipeline
+import torch
 
 # Get FB15k-237 dataset
 dataset = FB15k237()
@@ -121,29 +194,58 @@ model = TransE(
     triples_factory=dataset.training,
 )
 
-# Train your model (code is omitted for brevity)
-pipeline_result_1 = pipeline(
+batch_size = 128
+num_batches = math.floor(dataset.training.num_triples/batch_size),
+models_to_load = 5,
+max_lr = 0.1
+num_epochs = 500
+step = 50
+num_snapshots=10
+dataset_name = 'FB15k237'
+model_name = 'TransE'
+method = 'paper'
+
+negative_sampler_kwargs = dict(
+  num_batches=num_batches,
+  models_to_load=models_to_load,
+  num_epochs=num_epochs,
+  step=step,
+  dataset_name=dataset_name,
+  model_name=model_name,
+  method=method,
+)
+
+# Train your model
+pipeline_result = pipeline(
     dataset=dataset,
     random_seed=10,
-    model=model
-        )
+    model=model,
+    negative_sampler=ExtendedBasicNegativeSampler,
+    negative_sampler_kwargs=negative_sampler_kwargs,
+    training_kwargs=dict(
+      drop_last=True,
+      num_epochs=num_epochs,
+      callbacks=ModelSavingCallback,
+      callback_kwargs=dict(
+          batch_size=batch_size,
+          dataset_size=training.num_triples,
+          max_lr=max_lr,
+          min_lr=None,
+          step=step,
+          num_snapshots=num_snapshots,
+          num_epochs=num_epochs,
+          method=method,
+          dataset_name=dataset_name,
+          model_name=model_name
+      )
+    )
+)
 
-model_1 = pipeline_result_1.model
-
-pipeline_result_2 = pipeline(
-    dataset=dataset,
-    random_seed=50,
-    model=model
-        )
-
-model_2 = pipeline_result_2.model
-
-models = [model_1, model_2]
+# Load the last m=models_to_load models to ensemble
+models = [torch.load(f"./models/trained_model_{dataset_name}_{model_name}_{method}_{num_epochs - i * step}.pkl") for i in range(0, models_to_load)]
 
 # Define evaluator
-evaluator = EnsembleRankBasedEvaluator(
-    filtered=True,  # Note: this is True by default; we're just being explicit
-)
+evaluator = EnsembleRankBasedEvaluator()
 
 # Evaluate your model with not only testing triples,
 # but also filter on validation triples
@@ -161,9 +263,11 @@ Moreover, the scores of base models can be normalized and aggregated using weigh
 
 ```python
 from pykeen.datasets import FB15k237
+from pykeen.sampling import ExtendedBasicNegativeSampler
 from pykeen.evaluation import EnsembleRankBasedEvaluator
 from pykeen.models import TransE
 from pykeen.pipeline import pipeline
+import torch
 
 # Get FB15k-237 dataset
 dataset = FB15k237()
@@ -173,27 +277,59 @@ model = TransE(
     triples_factory=dataset.training,
 )
 
-# Train your model (code is omitted for brevity)
-pipeline_result_1 = pipeline(
+# Train your model 
+batch_size = 128
+num_batches = math.floor(dataset.training.num_triples/batch_size),
+models_to_load = 5,
+max_lr = 0.1
+num_epochs = 500
+step = 50
+num_snapshots=10
+dataset_name = 'FB15k237'
+model_name = 'TransE'
+method = 'paper'
+
+negative_sampler_kwargs = dict(
+  num_batches=num_batches,
+  models_to_load=models_to_load,
+  num_epochs=num_epochs,
+  step=step,
+  dataset_name=dataset_name,
+  model_name=model_name,
+  method=method,
+)
+
+# Train your model
+pipeline_result = pipeline(
     dataset=dataset,
     random_seed=10,
-    model=model
-        )
+    model=model,
+    negative_sampler=ExtendedBasicNegativeSampler,
+    negative_sampler_kwargs=negative_sampler_kwargs,
+    training_kwargs=dict(
+      drop_last=True,
+      num_epochs=num_epochs,
+      callbacks=ModelSavingCallback,
+      callback_kwargs=dict(
+          batch_size=batch_size,
+          dataset_size=training.num_triples,
+          max_lr=max_lr,
+          min_lr=None,
+          step=step,
+          num_snapshots=num_snapshots,
+          num_epochs=num_epochs,
+          method=method,
+          dataset_name=dataset_name,
+          model_name=model_name
+      )
+    )
+)
 
-model_1 = pipeline_result_1.model
-
-pipeline_result_2 = pipeline(
-    dataset=dataset,
-    random_seed=50,
-    model=model
-        )
-
-model_2 = pipeline_result_2.model
-
-models = [model_1, model_2]
+# Load the last m=models_to_load models to ensemble
+models = [torch.load(f"./models/trained_model_{dataset_name}_{model_name}_{method}_{num_epochs - i * step}.pkl") for i in range(0, models_to_load)]
 
 # Define the weights. Weights will be normalized.
-weights = [4, 6]
+weights = [models_to_load - i for i in range(0,models_to_load)]
 
 # Define wether to calculate Borda ranks
 borda = True
@@ -202,9 +338,7 @@ borda = True
 normalize = 'MinMax'
 
 # Define evaluator
-evaluator = EnsembleRankBasedEvaluator(
-    filtered=True,  # Note: this is True by default; we're just being explicit
-)
+evaluator = EnsembleRankBasedEvaluator()
 
 # Evaluate your model with not only testing triples,
 # but also filter on validation triples
@@ -218,126 +352,5 @@ results = evaluator.evaluate(
     weights=weights, 
     borda=borda, 
     normalize=normalize
-)
-```
-
-## Basic Negative Sampler
-
-PyKEEN provides several negative samplers. The example below shows how to train a model with the basic negative sampler.
-
-```python
-from pykeen.datasets import FB15k237
-from pykeen.evaluation import EnsembleRankBasedEvaluator
-from pykeen.sampling import BasicNegativeSampler
-from pykeen.models import TransE
-from pykeen.pipeline import pipeline
-
-# Get FB15k-237 dataset
-dataset = FB15k237()
-
-# Define model
-model = TransE(
-    triples_factory=dataset.training,
-)
-
-# Train your model (code is omitted for brevity)
-pipeline_result_1 = pipeline(
-    dataset=dataset,
-    random_seed=10,
-    model=model
-        )
-
-model_1 = pipeline_result_1.model
-
-pipeline_result_2 = pipeline(
-    dataset=dataset,
-    random_seed=50,
-    model=model,
-    negative_sampler=BasicNegativeSampler
-        )
-
-model_2 = pipeline_result_2.model
-
-models = [model_1, model_2]
-
-# Define evaluator
-evaluator = EnsembleRankBasedEvaluator(
-    filtered=True,  # Note: this is True by default; we're just being explicit
-)
-
-# Evaluate your model with not only testing triples,
-# but also filter on validation triples
-results = evaluator.evaluate(
-    model=models,
-    mapped_triples=dataset.testing.mapped_triples,
-    additional_filter_triples=[
-        dataset.training.mapped_triples,
-        dataset.validation.mapped_triples,
-    ],
-)
-```
-
-## Extended Negative Sampler
-
-```python
-from pykeen.datasets import FB15k237
-from pykeen.evaluation import EnsembleRankBasedEvaluator
-from pykeen.sampling import ExtendedBasicNegativeSampler
-from pykeen.models import TransE
-from pykeen.pipeline import pipeline
-
-# Get FB15k-237 dataset
-dataset = FB15k237()
-
-# Define model
-model = TransE(
-    triples_factory=dataset.training,
-)
-
-# Train your model (code is omitted for brevity)
-pipeline_result_1 = pipeline(
-    dataset=dataset,
-    random_seed=10,
-    model=model
-        )
-
-model_1 = pipeline_result_1.model
-
-negative_sampler_kwargs = dict(
-  num_batches=math.floor(training.num_triples/conf['batch_size']),
-  models_to_load=conf['models_to_load'],
-  num_epochs=conf['num_epochs'],
-  step=conf['step'],
-  dataset_name=conf['dataset_name'],
-  model_name=conf['model_name'],
-  method=method,
-)
-
-pipeline_result_2 = pipeline(
-    dataset=dataset,
-    random_seed=50,
-    model=model,
-    negative_sampler=ExtendedBasicNegativeSampler,
-    negative_sampler_kwargs=negative_sampler_kwargs
-        )
-
-model_2 = pipeline_result_2.model
-
-models = [model_1, model_2]
-
-# Define evaluator
-evaluator = EnsembleRankBasedEvaluator(
-    filtered=True,  # Note: this is True by default; we're just being explicit
-)
-
-# Evaluate your model with not only testing triples,
-# but also filter on validation triples
-results = evaluator.evaluate(
-    model=models,
-    mapped_triples=dataset.testing.mapped_triples,
-    additional_filter_triples=[
-        dataset.training.mapped_triples,
-        dataset.validation.mapped_triples,
-    ],
 )
 ```
