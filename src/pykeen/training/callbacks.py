@@ -72,6 +72,7 @@ from ..typing import MappedTriples, OneOrSequence
 __all__ = [
     "TrainingCallbackHint",
     "TrainingCallback",
+    "ModelSavingCallback",
     "StopperTrainingCallback",
     "TrackerTrainingCallback",
     "EvaluationLoopTrainingCallback",
