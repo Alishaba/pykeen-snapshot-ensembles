@@ -36,10 +36,17 @@
     allow training and evaluating snapshot ensembles of knowledge graph embedding models. Additionally, it also includes an extended negative sampler that iteratively creates negative examples using previous snapshot models. All functionalities and components provided in PyKEEN are also available in SnapE-PyKEEN.
 </p>
 
+SnapE-PyKEEN extends PyKEEN to allow for training Snapshot Ensembles of Knowledge Graph Embedding models by providing the following classes:
+1. ModelSavingCallback: This class extends PyKEEN's  TrainingCallback class to perform cyclic learning rate annealing and store model snapshots at the end of each cycle. The current implementation stores the models in a folder "models" in the root directory. Snapshot names will have the format './models/trained_model_{dataset_name}_{model_name}_{method}_{epoch}.pkl' where method is a keyword needed to separate between different experiemnts and epoch is the number of epoch at which the snapshot was stored.
+2. ExtendedBasicNegativeSampler: This class extends PyKEEN's NegativeSampler class to perform the extended negative sampling.
+3. EnsembleRankBasedEvaluator: This class extends PyKEEN's EnsembleEvaluator class to perform a rank-based evaluation for ensembles of KGEMs. 
+
 <p align="center">
   <a href="#installation">Installation</a> •
-  <a href="#Evaluating an ensemble of KGEMs">Evaluating an ensemble of KGEMs</a> •
-  <a href="#Extended Negative Sampler">Extended Negative Sampler</a> 
+  <a href="#Training a Snapshot Ensemble of KGEMs">Training a Snapshot Ensemble of KGEMs</a> •
+  <a href="#Extended Negative Sampler">Extended Negative Sampler</a> •
+  <a href="#Evaluating a (snapshot) ensemble of KGEMs">Evaluating a (snapshot) ensemble of KGEMs</a> 
+
 </p>
 
 ## Installation
@@ -56,6 +63,8 @@ More information about PyKEEN (e.g., installation, first steps, Knowledge Graph 
 
 ## Training a Snapshot Ensemble of KGEMs
 
+Below is an example of how to use SnapE-PyKEEN to train a Snapshot Ensemble of Knowledge Graph embedding Models.
+
 ```python
 from pykeen.datasets import FB15k237
 from pykeen.models import TransE
@@ -70,17 +79,18 @@ model = TransE(
     triples_factory=dataset.training,
 )
 
+# Define the Snapshot Ensemble configuration
 batch_size = 128
-max_lr = 0.1
+max_lr = 0.1 # the initial learning rate
 num_epochs = 500
-step = 50
-num_snapshots=10
+step = 50 # the number of epochs in each annealing cycle
+num_snapshots=10 # the number of snapshots to store
 dataset_name = 'FB15k237'
 model_name = 'TransE'
 method = 'paper'
 
 
-# Train your model (code is omitted for brevity)
+# Train your model
 pipeline_result = pipeline(
     dataset=dataset,
     random_seed=10,
@@ -108,6 +118,8 @@ pipeline_result = pipeline(
 
 ## Extended Negative Sampler
 
+Below is an example of how to use SnapE-PyKEEN to train a Snapshot Ensemble of Knowledge Graph embedding Models using the extended negative sampler.
+
 ```python
 from pykeen.datasets import FB15k237
 from pykeen.sampling import ExtendedBasicNegativeSampler
@@ -123,6 +135,7 @@ model = TransE(
     triples_factory=dataset.training,
 )
 
+# Define the Snapshot Ensemble configuration
 batch_size = 128
 num_batches = math.floor(dataset.training.num_triples/batch_size),
 models_to_load = 5,
@@ -134,6 +147,7 @@ dataset_name = 'FB15k237'
 model_name = 'TransE'
 method = 'paper'
 
+# Define the configuraton of the extended negative sampler
 negative_sampler_kwargs = dict(
   num_batches=num_batches,
   models_to_load=models_to_load,
@@ -174,9 +188,9 @@ pipeline_result = pipeline(
 
 ## Evaluating a (snapshot) ensemble of KGEMs
 
-The example provided in the previous section shows how to evaluate a single trained Knowledge Graph Embedding Model.  SnapE-PyKEEN extends this capability to provide rank-based evaluation for ensembles of Knowledge Graph Embedding Models.
+SnapE-PyKEEN provides rank-based evaluation for ensembles of Knowledge Graph Embedding Models.
 
-The example below shows how to use EnsembleRankBasedEvaluator to evaluate an ensemble. In the example below, the scores are aggregated using a simple average.
+The example below shows how to use EnsembleRankBasedEvaluator to evaluate an ensemble. In the example below, the scores are aggregated using a simple average (by default).
 
 ```python
 from pykeen.datasets import FB15k237
@@ -194,6 +208,7 @@ model = TransE(
     triples_factory=dataset.training,
 )
 
+# Define the Snapshot Ensemble configuration
 batch_size = 128
 num_batches = math.floor(dataset.training.num_triples/batch_size),
 models_to_load = 5,
@@ -205,6 +220,7 @@ dataset_name = 'FB15k237'
 model_name = 'TransE'
 method = 'paper'
 
+# Define the configuraton of the extended negative sampler
 negative_sampler_kwargs = dict(
   num_batches=num_batches,
   models_to_load=models_to_load,
@@ -248,7 +264,7 @@ models = [torch.load(f"./models/trained_model_{dataset_name}_{model_name}_{metho
 evaluator = EnsembleRankBasedEvaluator()
 
 # Evaluate your model with not only testing triples,
-# but also filter on validation triples
+# but also filter on training and validation triples
 results = evaluator.evaluate(
     model=models,
     mapped_triples=dataset.testing.mapped_triples,
@@ -277,7 +293,7 @@ model = TransE(
     triples_factory=dataset.training,
 )
 
-# Train your model 
+# Define the Snapshot Ensemble configuration
 batch_size = 128
 num_batches = math.floor(dataset.training.num_triples/batch_size),
 models_to_load = 5,
@@ -289,6 +305,7 @@ dataset_name = 'FB15k237'
 model_name = 'TransE'
 method = 'paper'
 
+# Define the configuraton of the extended negative sampler
 negative_sampler_kwargs = dict(
   num_batches=num_batches,
   models_to_load=models_to_load,
@@ -341,7 +358,7 @@ normalize = 'MinMax'
 evaluator = EnsembleRankBasedEvaluator()
 
 # Evaluate your model with not only testing triples,
-# but also filter on validation triples
+# but also filter on training and validation triples
 results = evaluator.evaluate(
     model=models,
     mapped_triples=dataset.testing.mapped_triples,
