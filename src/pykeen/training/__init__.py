@@ -77,7 +77,7 @@ triples considered in LCWA vs. sLCWA based on the given true triples (in red):
 
 from class_resolver import ClassResolver
 
-from .callbacks import TrainingCallback  # noqa: F401
+from .callbacks import TrainingCallback, ModelSavingCallback  # noqa: F401
 from .lcwa import LCWATrainingLoop, SymmetricLCWATrainingLoop  # noqa: F401
 from .slcwa import SLCWATrainingLoop  # noqa: F401
 from .training_loop import NonFiniteLossError, TrainingLoop  # noqa: F401
@@ -90,6 +90,7 @@ __all__ = [
     "NonFiniteLossError",
     "training_loop_resolver",
     "TrainingCallback",
+    "ModelSavingCallback",
 ]
 
 training_loop_resolver: ClassResolver[TrainingLoop] = ClassResolver.from_subclasses(
