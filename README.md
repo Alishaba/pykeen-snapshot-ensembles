@@ -381,6 +381,71 @@ results = evaluator.evaluate(
 )
 ```
 
+## Benchmarking against Multiple Run Ensemble
+
+It can be beneficial to benchmark Snapshot Ensembles against Multiple Run Ensembles (an esenbmle of m separately trained models with different random initializations). More information on Multiple Run Ensembles can be found in [this paper](https://arxiv.org/abs/2104.05003).
+
+```python
+from pykeen.datasets import FB15k237
+from pykeen.evaluation import EnsembleRankBasedEvaluator
+from pykeen.sampling import BasicNegativeSampler
+from pykeen.models import TransE
+from pykeen.pipeline import pipeline
+import torch
+import os
+
+# Get FB15k-237 dataset
+dataset = FB15k237()
+
+# Define the Snapshot Ensemble configuration
+batch_size = 128
+ensemble_size = 2
+lr = 0.0003
+num_epochs = 5
+dataset_name = 'FB15k237'
+model_name = 'TransE'
+
+# Create directory to save models
+os.makedirs('./models', exist_ok=True)
+
+for i_model in range(ensemble_size):
+    # Define a model
+    model = TransE(
+        triples_factory=dataset.training,
+        random_seed=10 + i_model
+    )
+
+    # Train a model
+    pipeline_result = pipeline(
+        dataset=dataset,
+        random_seed=10,
+        model=model,
+        optimizer='Adam',
+        optimizer_kwargs=dict(lr=lr),
+        negative_sampler=BasicNegativeSampler,
+        training_kwargs=dict(
+            num_epochs=num_epochs
+        )
+    )
+    pipeline_result.save_model(f"./models/trained_model_{i_model}.pkl")
+
+# Load the models to ensemble
+models = [torch.load(f"./models/trained_model_{m}.pkl") for m in range(ensemble_size)]
+
+# Define evaluator
+evaluator = EnsembleRankBasedEvaluator()
+
+# Evaluate your model with not only testing triples,
+# but also filter on training and validation triples
+results = evaluator.evaluate(
+    model=models,
+    mapped_triples=dataset.testing.mapped_triples,
+    additional_filter_triples=[
+        dataset.training.mapped_triples,
+        dataset.validation.mapped_triples,
+    ]
+)
+```
 
 ## Experimentation
 
